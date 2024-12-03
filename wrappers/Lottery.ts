@@ -46,6 +46,30 @@ export class Lottery implements Contract {
         });
     }
 
+    async changeBet(provider: ContractProvider, via: Sender, value: bigint, newBet: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(Opcodes.changeBet, 32).storeCoins(newBet).endCell(),
+        });
+    }
+
+    async changeMaxCycle(provider: ContractProvider, via: Sender, value: bigint, newMaxCycle: number) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(Opcodes.changeMaxCycle, 32).storeCoins(newMaxCycle).endCell(),
+        });
+    }
+
+    async withdrawal(provider: ContractProvider, via: Sender, value: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(Opcodes.withdrawal, 32).endCell(),
+        });
+    }
+
     async sendBet(provider: ContractProvider, via: Sender, value: bigint) {
         await provider.internal(via, {
             value,
