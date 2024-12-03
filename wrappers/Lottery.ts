@@ -46,21 +46,29 @@ export class Lottery implements Contract {
         });
     }
 
-    async getLotteryStatus(provider: ContractProvider) {
-        const result = await provider.get('get_lottery_status', []);
+    async sendBet(provider: ContractProvider, via: Sender, value: bigint) {
+        await provider.internal(via, {
+            value,
+            sendMode: SendMode.PAY_GAS_SEPARATELY,
+            body: beginCell().storeUint(Opcodes.bet, 32).endCell(),
+        });
+    }
 
-        return result.stack.readBoolean();
+    async getLotteryStatus(provider: ContractProvider) {
+        const { stack } = await provider.get('get_lottery_status', [])
+
+        return stack.readBoolean();
     }
 
     async getLotteryData(provider: ContractProvider) {
-        const result = await provider.get('get_lottery_data', []);
+        const { stack } = await provider.get('get_lottery_data', [])
 
         return {
-            addrList: result.stack.readCell(),
-            cycleLenght: result.stack.readNumber(),
-            maxCycle: result.stack.readNumber(),
-            betAmount: result.stack.readBigNumber(),
-            bankTotalCash: result.stack.readBigNumber(),
+            addrList: stack.readCell(),
+            cycleLenght: stack.readNumber(),
+            maxCycle: stack.readNumber(),
+            betAmount: stack.readBigNumber(),
+            bankTotalCash: stack.readBigNumber(),
         }
     }
 }

@@ -4,22 +4,22 @@
 #include "imports/utils.fc";
 
 ;; storage variables
-global int started;
+global int storage::started;
 global slice storage::owner_address;
 global cell storage::address_list;
 global int storage::bet_amount;
-global int storage::cycle_lenght;
+global int storage::cycle_length;
 global int storage::max_cycle;
 global int storage::bank_total_cash;
 
 () load_data() impure {
     var ds = get_data().begin_parse();
 
-    started = ds~load_int(1);
+    storage::started = ds~load_int(1);
     storage::owner_address = ds~load_msg_addr();
     storage::address_list = ds~load_dict();
     storage::bet_amount = ds~load_coins();
-    storage::cycle_lenght = ds~load_uint(32);
+    storage::cycle_length = ds~load_uint(32);
     storage::max_cycle = ds~load_uint(32);
     storage::bank_total_cash = ds~load_coins();
 
@@ -29,11 +29,11 @@ global int storage::bank_total_cash;
 () save_data() impure {
     set_data(
         begin_cell()
-            .store_int(started, 1)
+            .store_int(storage::started, 1)
             .store_slice(storage::owner_address)
             .store_dict(storage::address_list)
             .store_coins(storage::bet_amount)
-            .store_uint(storage::cycle_lenght, 32)
+            .store_uint(storage::cycle_length, 32)
             .store_uint(storage::max_cycle, 32)
             .store_coins(storage::bank_total_cash)
             .end_cell()
@@ -61,7 +61,7 @@ global int storage::bank_total_cash;
 
     if(equal_slices_bits(sender, storage::owner_address)) {
         if (op == op::change_bet) {
-            throw_if(err::lottery_started, started);
+            throw_if(err::lottery_started, storage::started);
             
             int new_bet = in_msg_body~load_coins();
 
@@ -75,7 +75,7 @@ global int storage::bank_total_cash;
         }
 
         if (op == op::change_max_cycle) {
-            throw_if(err::lottery_started, started);
+            throw_if(err::lottery_started, storage::started);
 
             int new_max_cycle = in_msg_body~load_coins();
 
@@ -103,84 +103,86 @@ global int storage::bank_total_cash;
                 .end_cell(),
                 1
             );
-        }
-    } else {
-        if (op == op::bet) {
-            throw_if(err::invalid_bet, msg_value != storage::bet_amount);
-        
-            (_, int found) = storage::address_list.dict_get?(267, sender);
-
-            if (found) {
-                throw(err::user_already_in_list);
-            }
-
-            if (storage::cycle_lenght < storage::max_cycle) {
-                started = true;
-
-                force_same_workchain(sender);
-
-                storage::address_list~dict_set_builder(267, sender, begin_cell().store_uint(storage::cycle_lenght, 32));
-
-                storage::cycle_lenght += 1;
-
-                storage::bank_total_cash += msg_value;
-
-                save_data();
-
-                send_raw_message(
-                    begin_cell()
-                        .store_uint(0x18, 6)
-                        .store_slice(sender)
-                        .store_coins(gas::info)
-                        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-                        .store_slice(notify::bet_accepted)
-                    .end_cell(),
-                    1
-                );
-            }
-
-            if (storage::cycle_lenght == storage::max_cycle) {
-               randomize_lt();
-
-               int random_number = rand(storage::max_cycle - 1);
-
-               do {
-                    (slice address, slice value, int f?) = storage::address_list~dict::delete_get_min(267);
-
-                    int user_number = value.preload_uint(32);
-
-                    if(user_number == random_number) {
-                        raw_reserve(gas::min_for_storage, 0);
-
-                        int user_reward = muldiv(storage::bank_total_cash, const::seventy_percent, const::percent_divisor);
-
-                        send_raw_message(
-                            begin_cell()
-                                .store_uint(0x18, 6)
-                                .store_slice(address)
-                                .store_coins(user_reward)
-                                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
-                                .store_slice(notify::winner)
-                            .end_cell(),
-                            1
-                        );
-
-                        storage::cycle_lenght = 0;
-                        storage::bank_total_cash = 0;
-                        storage::address_list = new_dict();
-                        started = false;
-                            
-                        save_data();
-
-                        return();
-                    }
-
-                    storage::cycle_lenght -= 1;
-               } until((~ f?) | (storage::cycle_lenght == 0))
-            }
 
             return ();
         }
+    } 
+
+    if (op == op::bet) {
+        throw_if(err::invalid_bet, msg_value != storage::bet_amount);
+        
+        (_, int found) = storage::address_list.dict_get?(267, sender);
+
+        if (found) {
+            throw(err::user_already_in_list);
+        }
+
+        if (storage::cycle_length < storage::max_cycle) {
+            storage::started = true;
+
+            force_same_workchain(sender);
+
+            storage::address_list~dict_set_builder(267, sender, begin_cell().store_uint(storage::cycle_length, 32));
+
+            storage::cycle_length += 1;
+
+            storage::bank_total_cash += msg_value;
+
+            save_data();
+
+            send_raw_message(
+                begin_cell()
+                    .store_uint(0x18, 6)
+                    .store_slice(sender)
+                    .store_coins(gas::info)
+                    .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                    .store_slice(notify::bet_accepted)
+                .end_cell(),
+                1
+            );
+        }
+
+        if (storage::cycle_length == storage::max_cycle) {
+            randomize_lt();
+
+            int random_number = rand(storage::max_cycle - 1);
+
+            do {
+                (slice address, slice value, int f?) = storage::address_list~dict::delete_get_min(267);
+
+                int user_number = value.preload_uint(32);
+
+                if(user_number == random_number) {
+                    raw_reserve(gas::min_for_storage, 0);
+
+                    int user_reward = muldiv(storage::bank_total_cash, const::seventy_percent, const::percent_divisor);
+
+                    send_raw_message(
+                        begin_cell()
+                            .store_uint(0x18, 6)
+                            .store_slice(address)
+                            .store_coins(user_reward)
+                            .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                            .store_slice(notify::winner)
+                        .end_cell(),
+                        1
+                    );
+
+                    storage::cycle_length = 0;
+                    storage::bank_total_cash = 0;
+                    storage::address_list = new_dict();
+                    storage::started = false;
+                            
+                    save_data();
+
+                    return();
+                }
+
+                storage::cycle_length -= 1;
+            } until((~ f?) | (storage::cycle_length == 0))
+        }
+
+        return ();
     }
 
     throw(unknown_operation);
@@ -189,7 +191,7 @@ global int storage::bank_total_cash;
 int get_lottery_status() method_id {
     load_data();
 
-    return started;
+    return storage::started;
 }
 
 (cell, int, int, int, int) get_lottery_data() method_id {
@@ -197,7 +199,7 @@ int get_lottery_status() method_id {
 
     return (
         storage::address_list,
-        storage::cycle_lenght,
+        storage::cycle_length,
         storage::max_cycle,
         storage::bet_amount,
         storage::bank_total_cash

@@ -8,7 +8,7 @@ export async function run(provider: NetworkProvider) {
             {
                 ownerAddress: provider.sender().address as Address,
                 maxCycle: 3,
-                betAmount: toNano('0.1'),
+                betAmount: toNano(0.1),
             },
             await compile('Lottery')
         )
@@ -17,10 +17,4 @@ export async function run(provider: NetworkProvider) {
     await lottery.sendDeploy(provider.sender(), toNano('0.05'));
 
     await provider.waitForDeploy(lottery.address);
-
-    const data = await lottery.getLotteryData();
-
-    const status = await lottery.getLotteryStatus();
-
-    console.log(data, status);
 }
