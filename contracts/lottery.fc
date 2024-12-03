@@ -6,7 +6,6 @@
 ;; storage variables
 global int started;
 global slice storage::owner_address;
-global slice storage::bank_wallet_address;
 global cell storage::address_list;
 global int storage::bet_amount;
 global int storage::cycle_lenght;
@@ -18,7 +17,6 @@ global int storage::bank_total_cash;
 
     started = ds~load_int(1);
     storage::owner_address = ds~load_msg_addr();
-    storage::bank_wallet_address = ds~load_msg_addr();
     storage::address_list = ds~load_dict();
     storage::bet_amount = ds~load_coins();
     storage::cycle_lenght = ds~load_uint(32);
@@ -33,7 +31,6 @@ global int storage::bank_total_cash;
         begin_cell()
             .store_int(started, 1)
             .store_slice(storage::owner_address)
-            .store_slice(storage::bank_wallet_address)
             .store_dict(storage::address_list)
             .store_coins(storage::bet_amount)
             .store_uint(storage::cycle_lenght, 32)
@@ -91,14 +88,21 @@ global int storage::bank_total_cash;
             return ();
         }
 
-        if (op == op::change_bank_wallet_address) {
-            slice new_bank_wallet_address = in_msg_body~load_msg_addr();
+        if (op == op::withdrawal) {
+            int amount = my_balance - gas::min_for_storage;
 
-            storage::bank_wallet_address = new_bank_wallet_address;
-    
-            save_data();
+            throw_if(err::small_balance, amount <= 0);
 
-            return ();
+            send_raw_message(
+                begin_cell()
+                    .store_uint(0x18, 6)
+                    .store_slice(sender)
+                    .store_coins(amount)
+                    .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                    .store_slice(notify::withdrawal)
+                .end_cell(),
+                1
+            );
         }
     } else {
         if (op == op::bet) {
@@ -138,7 +142,41 @@ global int storage::bank_total_cash;
             if (storage::cycle_lenght == storage::max_cycle) {
                randomize_lt();
 
-               int random_number = rand(storage::max_cycle - 1); 
+               int random_number = rand(storage::max_cycle - 1);
+
+               do {
+                    (slice address, slice value, int f?) = storage::address_list~dict::delete_get_min(267);
+
+                    int user_number = value.preload_uint(32);
+
+                    if(user_number == random_number) {
+                        raw_reserve(gas::min_for_storage, 0);
+
+                        int user_reward = muldiv(storage::bank_total_cash, const::seventy_percent, const::percent_divisor);
+
+                        send_raw_message(
+                            begin_cell()
+                                .store_uint(0x18, 6)
+                                .store_slice(address)
+                                .store_coins(user_reward)
+                                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                                .store_slice(notify::winner)
+                            .end_cell(),
+                            1
+                        );
+
+                        storage::cycle_lenght = 0;
+                        storage::bank_total_cash = 0;
+                        storage::address_list = new_dict();
+                        started = false;
+                            
+                        save_data();
+
+                        return();
+                    }
+
+                    storage::cycle_lenght -= 1;
+               } until((~ f?) | (storage::cycle_lenght == 0))
             }
 
             return ();

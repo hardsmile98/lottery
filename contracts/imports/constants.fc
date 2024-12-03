@@ -1,14 +1,20 @@
+const int const::thirty_percent     = 300000000;
+const int const::seventy_percent    = 700000000;
+const int const::percent_divisor    = 1000000000;
+
 ;; errors
 const err::lottery_started = 50;
 const err::invalid_new_bet = 51;
 const err::invalid_cycle = 52;
-const err::invalid_bank_wallet_address = 53;
-const err::invalid_bet = 54;
-const err::user_already_in_list = 55;
+const err::invalid_bet = 53;
+const err::user_already_in_list = 54;
+const err::small_balance = 55;
 
 ;; gas
 const int gas::info = 1000000;
+const int gas::min_for_storage = 50000000;
 
 ;; messages
 const slice notify::bet_accepted = "Bet accepted!";
 const slice notify::winner = "You won the lottery!";
+const slice notify::withdrawal = "Withdrawal successful";
