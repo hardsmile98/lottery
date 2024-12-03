@@ -77,7 +77,7 @@ global int storage::bank_total_cash;
         if (op == op::change_max_cycle) {
             throw_if(err::lottery_started, storage::started);
 
-            int new_max_cycle = in_msg_body~load_coins();
+            int new_max_cycle = in_msg_body~load_uint(32);
 
             throw_if(err::invalid_cycle, new_max_cycle <= 0);
 

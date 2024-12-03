@@ -58,7 +58,7 @@ export class Lottery implements Contract {
         await provider.internal(via, {
             value,
             sendMode: SendMode.PAY_GAS_SEPARATELY,
-            body: beginCell().storeUint(Opcodes.changeMaxCycle, 32).storeCoins(newMaxCycle).endCell(),
+            body: beginCell().storeUint(Opcodes.changeMaxCycle, 32).storeUint(newMaxCycle, 32).endCell(),
         });
     }
 
