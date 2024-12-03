@@ -2,7 +2,6 @@ import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, 
 
 export type LotteryConfig = {
     ownerAddress: Address;
-    bankWalletAddress: Address;
     maxCycle: number;
     betAmount: bigint;
 };
@@ -11,7 +10,6 @@ export function lotteryConfigToCell(config: LotteryConfig): Cell {
     return beginCell()
         .storeBit(0)
         .storeAddress(config.ownerAddress)
-        .storeAddress(config.bankWalletAddress)
         .storeDict(Dictionary.empty())
         .storeCoins(config.betAmount)
         .storeUint(0, 32)

@@ -7,7 +7,6 @@ export async function run(provider: NetworkProvider) {
         Lottery.createFromConfig(
             {
                 ownerAddress: provider.sender().address as Address,
-                bankWalletAddress: provider.sender().address as Address,
                 maxCycle: 3,
                 betAmount: toNano('0.1'),
             },
