@@ -1,0 +1,14 @@
+;; errors
+const err::lottery_started = 50;
+const err::invalid_new_bet = 51;
+const err::invalid_cycle = 52;
+const err::invalid_bank_wallet_address = 53;
+const err::invalid_bet = 54;
+const err::user_already_in_list = 55;
+
+;; gas
+const int gas::info = 1000000;
+
+;; messages
+const slice notify::bet_accepted = "Bet accepted!";
+const slice notify::winner = "You won the lottery!";

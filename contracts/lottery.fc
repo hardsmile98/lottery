@@ -1,0 +1,167 @@
+#include "imports/stdlib.fc";
+#include "imports/op-codes.fc";
+#include "imports/constants.fc";
+#include "imports/utils.fc";
+
+;; storage variables
+global int started;
+global slice storage::owner_address;
+global slice storage::bank_wallet_address;
+global cell storage::address_list;
+global int storage::bet_amount;
+global int storage::cycle_lenght;
+global int storage::max_cycle;
+global int storage::bank_total_cash;
+
+() load_data() impure {
+    var ds = get_data().begin_parse();
+
+    started = ds~load_int(1);
+    storage::owner_address = ds~load_msg_addr();
+    storage::bank_wallet_address = ds~load_msg_addr();
+    storage::address_list = ds~load_dict();
+    storage::bet_amount = ds~load_coins();
+    storage::cycle_lenght = ds~load_uint(32);
+    storage::max_cycle = ds~load_uint(32);
+    storage::bank_total_cash = ds~load_coins();
+
+    ds.end_parse();
+}
+
+() save_data() impure {
+    set_data(
+        begin_cell()
+            .store_int(started, 1)
+            .store_slice(storage::owner_address)
+            .store_slice(storage::bank_wallet_address)
+            .store_dict(storage::address_list)
+            .store_coins(storage::bet_amount)
+            .store_uint(storage::cycle_lenght, 32)
+            .store_uint(storage::max_cycle, 32)
+            .store_coins(storage::bank_total_cash)
+            .end_cell()
+    );
+}
+
+() recv_internal(int my_balance, int msg_value, cell in_msg_full, slice in_msg_body) impure {
+    if (in_msg_body.slice_empty?()) {
+        return ();
+    }
+
+    slice cs = in_msg_full.begin_parse();
+
+    int flags = cs~load_uint(4);
+
+    if (flags & 1) {
+        return ();
+    }
+
+    load_data();
+
+    slice sender = cs~load_msg_addr();
+
+    int op = in_msg_body~load_uint(32);
+
+    if(equal_slices_bits(sender, storage::owner_address)) {
+        if (op == op::change_bet) {
+            throw_if(err::lottery_started, started);
+            
+            int new_bet = in_msg_body~load_coins();
+
+            throw_if(err::invalid_new_bet, new_bet <= 0);
+
+            storage::bet_amount = new_bet;
+    
+            save_data();
+
+            return ();
+        }
+
+        if (op == op::change_max_cycle) {
+            throw_if(err::lottery_started, started);
+
+            int new_max_cycle = in_msg_body~load_coins();
+
+            throw_if(err::invalid_cycle, new_bet <= 0);
+
+            storage::max_cycle = new_max_cycle;
+
+            save_data();
+
+            return ();
+        }
+
+        if (op == op::change_bank_wallet_address) {
+            slice new_bank_wallet_address = in_msg_body~load_msg_addr();
+
+            storage::bank_wallet_address = new_bank_wallet_address;
+    
+            save_data();
+
+            return ();
+        }
+    } else {
+        if (op == op::bet) {
+            throw_if(err::invalid_bet, msg_value != storage::bet_amount);
+
+            (_, int found) = storage::address_list.dict_get?(267, sender);
+
+            if (found) {
+                throw(err::user_already_in_list);
+            }
+
+            if (storage::cycle_lenght < storage::max_cycle) {
+                started = true;
+
+                force_same_workchain(sender);
+
+                storage::address_list~dict_set_builder((267), sender, begin_cell().store_uint(storage::cycle_lenght, 32));
+
+                storage::cycle_lenght += 1;
+
+                storage::bank_total_cash += msg_value;
+
+                save_data();
+
+                send_raw_message(
+                    begin_cell()
+                        .store_uint(0x18, 6)
+                        .store_slice(sender)
+                        .store_coins(gas::info)
+                        .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                        .store_slice(notify::bet_accepted)
+                    .end_cell(),
+                    1
+                );
+            }
+
+            if (storage::cycle_lenght == storage::max_cycle) {
+               randomize_lt();
+
+               int random_number = rand(storage::max_cycle - 1); 
+            }
+
+            return ();
+        }
+    }
+
+    throw(unknown_operation);
+}
+
+int get_lottery_status() method_id {
+    load_data();
+
+    return started;
+}
+
+int get_lottery_data() method_id {
+    load_data();
+
+    return (
+        storage::address_list,
+        storage::cycle_lenght,
+        storage::max_cycle
+        storage::bet_amount,
+        storage::bank_total_cash
+    );
+}

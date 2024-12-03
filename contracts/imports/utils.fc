@@ -1,0 +1,6 @@
+const int WORKCHAIN = 0;
+
+() force_same_workchain(slice addr) impure inline {
+    (int wc, _) = parse_std_addr(addr);
+    throw_unless(333, wc == WORKCHAIN);
+}
