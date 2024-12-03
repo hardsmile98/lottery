@@ -19,7 +19,10 @@ export function lotteryConfigToCell(config: LotteryConfig): Cell {
 }
 
 export const Opcodes = {
-    increase: 0x7e8764ef,
+    changeBet: 1000,
+    changeMaxCycle: 1001,
+    withdrawal: 1002,
+    bet: 2000
 };
 
 export class Lottery implements Contract {

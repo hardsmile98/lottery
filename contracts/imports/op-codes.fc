@@ -1,8 +1,7 @@
 ;; op codes
 const op::change_bet = 1000;
 const op::change_max_cycle = 1001;
-const op::change_bank_wallet_address = 1002;
-const op::withdrawal = 1003;
+const op::withdrawal = 1002;
 const op::bet = 2000;
 
 const int unknown_operation = 0xffff;
