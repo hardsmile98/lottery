@@ -82,7 +82,7 @@ global int storage::bank_total_cash;
 
             int new_max_cycle = in_msg_body~load_coins();
 
-            throw_if(err::invalid_cycle, new_bet <= 0);
+            throw_if(err::invalid_cycle, new_max_cycle <= 0);
 
             storage::max_cycle = new_max_cycle;
 
@@ -103,7 +103,7 @@ global int storage::bank_total_cash;
     } else {
         if (op == op::bet) {
             throw_if(err::invalid_bet, msg_value != storage::bet_amount);
-
+        
             (_, int found) = storage::address_list.dict_get?(267, sender);
 
             if (found) {
@@ -115,7 +115,7 @@ global int storage::bank_total_cash;
 
                 force_same_workchain(sender);
 
-                storage::address_list~dict_set_builder((267), sender, begin_cell().store_uint(storage::cycle_lenght, 32));
+                storage::address_list~dict_set_builder(267, sender, begin_cell().store_uint(storage::cycle_lenght, 32));
 
                 storage::cycle_lenght += 1;
 
@@ -154,13 +154,13 @@ int get_lottery_status() method_id {
     return started;
 }
 
-int get_lottery_data() method_id {
+(cell, int, int, int, int) get_lottery_data() method_id {
     load_data();
 
     return (
         storage::address_list,
         storage::cycle_lenght,
-        storage::max_cycle
+        storage::max_cycle,
         storage::bet_amount,
         storage::bank_total_cash
     );

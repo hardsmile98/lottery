@@ -1,12 +1,23 @@
-import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Sender, SendMode } from '@ton/core';
+import { Address, beginCell, Cell, Contract, contractAddress, ContractProvider, Dictionary, Sender, SendMode } from '@ton/core';
 
 export type LotteryConfig = {
-    id: number;
-    counter: number;
+    ownerAddress: Address;
+    bankWalletAddress: Address;
+    maxCycle: number;
+    betAmount: bigint;
 };
 
 export function lotteryConfigToCell(config: LotteryConfig): Cell {
-    return beginCell().storeUint(config.id, 32).storeUint(config.counter, 32).endCell();
+    return beginCell()
+        .storeBit(0)
+        .storeAddress(config.ownerAddress)
+        .storeAddress(config.bankWalletAddress)
+        .storeDict(Dictionary.empty())
+        .storeCoins(config.betAmount)
+        .storeUint(0, 32)
+        .storeUint(config.maxCycle, 32)
+        .storeCoins(0)
+    .endCell();
 }
 
 export const Opcodes = {
@@ -32,5 +43,23 @@ export class Lottery implements Contract {
             sendMode: SendMode.PAY_GAS_SEPARATELY,
             body: beginCell().endCell(),
         });
+    }
+
+    async getLotteryStatus(provider: ContractProvider) {
+        const result = await provider.get('get_lottery_status', []);
+
+        return result.stack.readBoolean();
+    }
+
+    async getLotteryData(provider: ContractProvider) {
+        const result = await provider.get('get_lottery_data', []);
+
+        return {
+            addrList: result.stack.readCell(),
+            cycleLenght: result.stack.readNumber(),
+            maxCycle: result.stack.readNumber(),
+            betAmount: result.stack.readBigNumber(),
+            bankTotalCash: result.stack.readBigNumber(),
+        }
     }
 }
