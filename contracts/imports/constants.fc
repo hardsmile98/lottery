@@ -15,6 +15,6 @@ const int gas::info = 1000000;
 const int gas::min_for_storage = 50000000;
 
 ;; messages
-const int notify::bet_accepted = 3000;
-const int notify::winner = 3001;
-const int notify::withdrawal = 3002;
+const slice notify::bet_accepted = "Bet accepted!";
+const slice notify::winner = "You win";
+const slice notify::withdrawal = "Withdrawal successful";
