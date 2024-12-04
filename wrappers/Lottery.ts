@@ -88,7 +88,7 @@ export class Lottery implements Contract {
         const { stack } = await provider.get('get_lottery_data', [])
 
         return {
-            addrList: stack.readCell(),
+            addrList: stack.readCellOpt(),
             cycleLenght: stack.readNumber(),
             maxCycle: stack.readNumber(),
             betAmount: stack.readBigNumber(),
