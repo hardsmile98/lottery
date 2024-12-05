@@ -1,4 +1,8 @@
-# y
+# Lottery on TON
+The contract accepts a bet in the form of tone.As soon as the max_cycle of transactions is reached, a random winner is selected and 70% of the bank is sent to him. The remaining 30% remains on the balance of the smart contract. After that, a new round begins and bets are accepted. Supports various customizations, such as:
+- bet amount changing
+- changing the number of transactions in one round
+- withdrawing funds from a smart contract
 
 ## Project structure
 
@@ -21,6 +25,3 @@
 
 `npx blueprint run` or `yarn blueprint run`
 
-### Add a new contract
-
-`npx blueprint create ContractName` or `yarn blueprint create ContractName`
